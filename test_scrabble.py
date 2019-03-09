@@ -1,7 +1,8 @@
 import pdb
 import random
 
-from plastering.inferencers.scrabble_interface2 import ScrabbleInterface
+# from plastering.inferencers.scrabble_interface2 import ScrabbleInterface
+from plastering.inferencers.scrabble_new import ScrabbleInterface
 from plastering.metadata_interface import *
 
 

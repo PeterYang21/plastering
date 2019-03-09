@@ -536,7 +536,7 @@ class ZodiacInterface(Inferencer):
         self.pred_confidences = pred_confidences
         t1 = arrow.get()
         print('REALLY it takes this: {0}'.format(t1 - t0))
-        if output_foramt == 'ttl':
+        if output_format == 'ttl':
             return pred_g
         elif output_format == 'json':
             return pred_points

@@ -153,6 +153,8 @@ class BrickGraph(object):
         }
         """ % (self.BASE) # Query selecting any instances with name space BASE.
         res = self.query_sparql(qstr)
+        # with open("qtr.txt","w") as f:
+        #     f.write(str(res))
         return {row['s'].split('#')[-1]: row['o'].split('#')[-1] for row in res}
         """
         if self.triplestore_type == 'virtuoso':

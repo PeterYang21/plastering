@@ -67,5 +67,6 @@ def insert_groundtruth(srcid, building,
         new_labels['set__point_tagset'] = point_tagset
     if tagsets:
         new_labels['set__tagsets'] = tagsets
+    print("new labels: ", new_labels)
     obj.update(**new_labels, upsert=True)
     obj.save()

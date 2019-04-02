@@ -1,46 +1,48 @@
-from flask import Flask, request
+from flask import Flask, request, session
 from flask_restful import reqparse, abort, Api, Resource
 import sys
 sys.path.append("..")
-from plastering.metadata_interface import *
 from db_model import *
 from db_helper import *
+from algo_generator import *
 import pickle, uuid
 
 class Login(Resource):
     def post(self):
         """
-        input: userID
+        input: userID, password
         """
-        userid, pwd = request.forms['userid'], request.forms['pwd']
-        user = User.objects(userid=userid, pwd=pwd)\
-                   .upsert_one(userid=userid, pwd=pwd)
-        if not user.playground:
-            user.playground = []
-        user.save()
+        userid, pwd = request.form['userid'], request.form['pwd']
+        # todo: update based on single field rather than both
+        user = User.objects(userid=userid)\
+                   .upsert_one(userid=userid, pwd=pwd, playground=[])
+        print(user.userid, user.pwd, user.playground)
+        # user.playground = list()
+        user.save() # playground is empty list by default
 
-class InitializePlayground(Resource):
+class BuildPlayground(Resource):
     def post(self):
         """
         initialize db of current playground and algorithm instance
         input: userid, algorithm, target building
         output: none
         """
-        userid, building, algo_type = request.forms['userid'], request.forms['building'], request.forms['algo_type']
+        userid, building, algo_type = request.form['userid'], request.form['building'], request.form['algo_type']
+        user = User.objects(userid=userid).first()
         pg = Playground.objects(
             userid=userid, 
             building=building, 
             algo_type=algo_type
-        )
+        ).first()
         
         # assume new user, thus no previous playground record
         if not pg: 
-            algo_model = get_algo_instance(algo_type=algo_type, building=building) # todo
-            algo_binaries = pickle.dumps(algo_model, protocol=pickle.HIGHEST_PROTOCOL)
-            objs = BaseLabeledMetadata.objects(building=building) # copy necessary data
+            # algo_instance = get_algo_instance(algo_type=algo_type, target_building=building) # todo
+            # algo_binaries = pickle.dumps(algo_instance, protocol=pickle.HIGHEST_PROTOCOL)
+            objs = LabeledMetadata.objects(building=building) # copy necessary data
             pg_docs = []
+            pgid = str(uuid.uuid4())
             for obj in objs:
-                pgid = str(uuid.uuid4())
                 pg_doc = PlaygroundLabeledMetadata(
                             userid=userid,
                             pgid=pgid,
@@ -51,15 +53,21 @@ class InitializePlayground(Resource):
                             tagsets=obj.tagsets
                         ).save()
                 pg_docs.append(pg_doc)
+            print('finish copying {} objects from base labeled metadata'.format(len(pg_docs)))
                 
-            Playground(
+            pg = Playground(
                 userid=userid,
                 pgid=pgid,
                 building=building,
                 algo_type=algo_type,
-                algo_model=algo_binaries,
+                # algo_model=algo_binaries,
                 playground_labeled_metadata=pg_docs
             ).save()
+
+            # add playground to user's record
+            user.playground.append(pg)
+            user.save()
+            print('add playground:{} for user:{}'.format(pg.pgid, user.userid))
 
         # algo = Zodiac()
         # pickled = pickle(algo)
@@ -72,7 +80,7 @@ class SelectExample(Resource):
         output: most informative example that needs expert labeling
         """
         # load model from db
-        pgid = request.forms['pgid']
+        pgid = request.form['pgid']
         obj = Playground.objects(pgid=pgid).first()
         model = pickle.loads(obj.algo_model)
 
@@ -95,8 +103,8 @@ class InsertLabeledExample(Resource):
         """
         input: srcid, building, annotated label
         """
-        pgid = request.forms['pgid']
-        srcid, building, expert_label = request.forms['srcid'], request.forms['building'], request.forms['expert_label']
+        pgid = request.form['pgid']
+        srcid, building, expert_label = request.form['srcid'], request.form['building'], request.form['expert_label']
         insert_label(
             pgid=pgid,
             srcid=srcid,
@@ -112,7 +120,7 @@ class UpdateModel(Resource):
         output: updated model statistics
         """
         # load model from db
-        pgid = request.forms['pgid']
+        pgid = request.form['pgid']
         obj = Playground.objects(pgid=pgid).first()
         model = pickle.loads(obj.algo_model)
         # update model with newly added srcids
@@ -123,5 +131,3 @@ class UpdateModel(Resource):
 
 class Predict(Resource):
     pass
-
-# get user algo from database in each api

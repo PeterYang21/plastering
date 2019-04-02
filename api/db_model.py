@@ -1,11 +1,6 @@
 from mongoengine import *
 connect('api')
 
-class User(Document):
-    userid = StringField(required=True)
-    playground = ListField(StringField())
-    pwd = StringField()
-
 class PlaygroundLabeledMetadata(Document):
     userid = StringField(required=True)
     pgid = StringField(required=True) # share pgid with its associated playground
@@ -24,10 +19,8 @@ class Playground(Document):
     algo_model = BinaryField()
     new_srcid = ListField()
     playground_labeled_metadata = ListField(ReferenceField(PlaygroundLabeledMetadata))
-    # playground_labeled_metadata_id = StringField()
 
-class BaseLabeledMetadata(Document):
-    # db_id = StringField(required=True)
+class LabeledMetadata(Document):
     srcid = StringField(required=True)
     building = StringField(required=True)
     point_tagset = StringField(required=True)
@@ -35,5 +28,14 @@ class BaseLabeledMetadata(Document):
     tagsets = ListField(StringField())
     tagsets_parsing = DictField() # optional
 
-# class RawMetadata(Document)
+class RawMetadata(Document):
+    srcid = StringField(required=True)
+    building = StringField(required=True)
+    metadata = DictField()
+
+class User(Document):
+    userid = StringField(required=True)
+    playground = ListField(ReferenceField(Playground))
+    pwd = StringField(required=True)
+
 #todo: update google doc

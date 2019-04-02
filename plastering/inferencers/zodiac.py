@@ -29,7 +29,10 @@ from sklearn.naive_bayes import MultinomialNB
 
 from . import Inferencer
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/zodiac')
-from ..metadata_interface import *
+# from ..metadata_interface import *
+sys.path.append('/Users/yimingyang/Desktop/Project/plaster/api/db_model.py') # use api database 
+from db_model import *
+
 from ..common import *
 from ..rdf_wrapper import *
 from jasonhelper import bidict

@@ -17,7 +17,7 @@ class Playground(Document):
     building = StringField(required=True)
     algo_type = StringField(required=True)
     algo_model = BinaryField()
-    new_srcid = ListField()
+    new_srcid = ListField() # todo: use map to avoid duplicates
     playground_labeled_metadata = ListField(ReferenceField(PlaygroundLabeledMetadata))
 
 class LabeledMetadata(Document):

@@ -1,9 +1,13 @@
 from mongoengine import *
-connect('api')
+import sys
+sys.path.append("..")
+from plastering.metadata_interface import *
+connect('plastering')
 
 class PlaygroundLabeledMetadata(Document):
-    userid = StringField(required=True)
+    userid = StringField(required=True) # optional ?
     pgid = StringField(required=True) # share pgid with its associated playground
+    timestamp = DateTimeField() # record most recent version 
     srcid = StringField(required=True)
     building = StringField(required=True)
     point_tagset = StringField(required=True)
@@ -11,7 +15,7 @@ class PlaygroundLabeledMetadata(Document):
     tagsets = ListField(StringField())
     tagsets_parsing = DictField() # optional
 
-class Playground(Document):
+class Playground(Document): 
     userid = StringField(required=True)
     pgid = StringField(required=True)
     building = StringField(required=True)
@@ -20,22 +24,7 @@ class Playground(Document):
     new_srcid = ListField() # todo: use map to avoid duplicates
     playground_labeled_metadata = ListField(ReferenceField(PlaygroundLabeledMetadata))
 
-class LabeledMetadata(Document):
-    srcid = StringField(required=True)
-    building = StringField(required=True)
-    point_tagset = StringField(required=True)
-    fullparsing = DictField()
-    tagsets = ListField(StringField())
-    tagsets_parsing = DictField() # optional
-
-class RawMetadata(Document):
-    srcid = StringField(required=True)
-    building = StringField(required=True)
-    metadata = DictField()
-
 class User(Document):
     userid = StringField(required=True)
     playground = ListField(ReferenceField(Playground))
     pwd = StringField(required=True)
-
-#todo: update google doc

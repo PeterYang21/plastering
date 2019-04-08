@@ -1,4 +1,4 @@
-from flask import Flask, request, session, jsonify
+from flask import Flask, request, session, jsonify, Blueprint
 from flask_restful import reqparse, abort, Api, Resource
 import sys, uuid
 sys.path.append("..")
@@ -8,11 +8,12 @@ import dill as pickle
 import logging
 from datetime import datetime
 
-app = Flask(__name__) 
+api_blueprint = Blueprint('api', __name__)
 logging.basicConfig(filename="api.log",  format='%(asctime)s %(message)s', filemode='a') 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-app.secret_key = 'SECRET_KEY'
+
+# app.secret_key = 'SECRET_KEY'
 # todo: add session
 # db.({session_key: {
 #     user_id: 'USER_ID',
@@ -20,7 +21,9 @@ app.secret_key = 'SECRET_KEY'
 #     building: 'ghc',
 #     pgid: uuid,
 # }})
-@app.route('/login', methods=['POST'])
+
+
+@api_blueprint.route('/login', methods=['POST'])
 def login():
     """
     input: userID, password
@@ -29,13 +32,12 @@ def login():
     user = User.objects(userid=userid)\
             .upsert_one(userid=userid, pwd=pwd, playground=[]) # playground is empty list by default
     user.save() 
-    print(logger)
     logger.info('userid={} logins'.format(userid))
     message = {'userid': userid}
     resp = jsonify(message)
     return resp
 
-@app.route('/playground', methods=['POST'])
+@api_blueprint.route('/playground', methods=['POST'])
 def build_playground():
     """
     build a playground based on user's input building and algorithm type
@@ -64,12 +66,12 @@ def build_playground():
 
     message = {
         'userid': userid,
-        'new playground': pgid
+        'new_playground': pgid
     }
     resp = jsonify(message)
     return resp
 
-@app.route('/playground', methods=['GET']) # todo: need front-end (on-click) support
+@api_blueprint.route('/playground', methods=['GET']) # todo: need front-end (on-click) support
 def get_playgrounds(userid):
     """
     display all playgrounds of current user
@@ -80,7 +82,7 @@ def get_playgrounds(userid):
     playgrounds = Playground.objects(userid=userid)
     pass
 
-@app.route('/playground/<pgid>/select_example', methods=['GET'])
+@api_blueprint.route('/playground/<pgid>/select_example', methods=['GET'])
 def select_example(pgid):
     """
     input: pgid
@@ -106,7 +108,7 @@ def select_example(pgid):
     resp = jsonify(message)
     return resp
 
-@app.route('/playground/<pgid>/labeled_metadata', methods=['POST'])
+@api_blueprint.route('/playground/<pgid>/labeled_metadata', methods=['POST'])
 def insert_labeled_example(pgid): # todo: need front-end support to specify labels
     """
     input: srcid, building, annotated label
@@ -131,11 +133,11 @@ def insert_labeled_example(pgid): # todo: need front-end support to specify labe
     }
     resp = jsonify(message)
     return resp
-    # todo: scrabble needs full parsing and tagsets ?
+    # todo: scrabble needs full parsing
     # todo: need to know type of algorithm to decide function parameters 
-    # todo: how to deal with new srcids after updating model? clear the new srcid list?
+    # todo: how to deal with new srcids after updating model? clear the new srcid list
 
-@app.route('/playground/<pgid>/update_model', methods=['GET'])
+@api_blueprint.route('/playground/<pgid>/update_model', methods=['GET'])
 def update_model(pgid):
     """
     output: updated model statistics
@@ -149,11 +151,19 @@ def update_model(pgid):
     algo_binaries = pickle.dumps(model, protocol=pickle.HIGHEST_PROTOCOL)
     obj.algo_model = algo_binaries
     obj.save()
-    return 'update model with srcid {}\n'.format(obj.new_srcid) # todo: accuracy is always 0
 
-@app.route('/playground/<pgid>/predict', methods=['GET', 'POST'])
-def predict(): # todo: predict all vs. predict points interested in 
+    message = {
+        'srcid for model updating': obj.new_srcid # todo: accuracy is always 0
+    }
+    logger.info(message)
+    resp = jsonify(message)
+    return resp
+
+@api_blueprint.route('/playground/<pgid>/predict', methods=['GET', 'POST'])
+def predict(): # todo: predict all vs. predict points interested in (filter) 
     pass
 
 if __name__ == '__main__':
+    app = Flask(__name__) 
+    app.register_blueprint(api_blueprint)
     app.run(debug=True)
